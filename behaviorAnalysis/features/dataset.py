@@ -227,7 +227,7 @@ class Dataset:
             self.N = len(self.batches)
         else:
             self.N = int(np.floor(self.N_seqs/float(self.batchsize/2)))#'self.batchsize/2' because the batch is filled half with the real sequences and half with its shuffled version
-            self.batches = [self.seqs[i*(self.batchsize/2):(i+1)*(self.batchsize/2)] for i in range(self.N)]
+            self.batches = [self.seqs[i*(self.batchsize//2):(i+1)*(self.batchsize//2)] for i in range(self.N)]
             #self.batches = self.batches[:100]########################################################################################################################################################
             #self.N = len(self.batches)############################################################################################################################################################
     
