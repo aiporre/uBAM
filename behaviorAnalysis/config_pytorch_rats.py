@@ -29,7 +29,7 @@ seq_len = 8
 net_name = 'lstm_walking'
 features_path = _input_path+_project+'/features/'
 
-init_weights = _input_path+_project+'/features/pytorch/"
+init_weights = _input_path+_project+'/features/pytorch/'
 checkpoint_path = _input_path+_project+'/features/'
 final_weights = checkpoint_path+'lstm_checkpoint.pth.tar'
 
