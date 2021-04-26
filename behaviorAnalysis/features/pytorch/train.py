@@ -17,7 +17,7 @@ import torch.nn as nn
 from torch import max as tmax
 from torch.autograd import Variable
 from tqdm import tqdm
-
+import argparse
 #only use 'Logger' if tensorflow is installed
 try:
     sys.path.append("dependencies")
