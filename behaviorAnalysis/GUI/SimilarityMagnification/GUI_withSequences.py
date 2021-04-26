@@ -55,8 +55,9 @@ from PyQt5 import QtTest
 import torch
 from torch.autograd import Variable
 #os.environ["CUDA_VISIBLE_DEVICES"]=""#make sure that it is run on the cpu
-sys.path.append('')
+sys.path.append('./features/pytorch/')
 from model import CaffeNet
+sys.path.append('.')
 from utils import load_table, load_features, transform_batch, draw_border, fig2data, load_image
 
 sys.path.append('./GUI/SimilarityMagnification/')
@@ -89,13 +90,34 @@ def save_umap(umap,file):
     pickle.dump(umap,file,pickle.HIGHEST_PROTOCOL)
 
 def load_umap(file):
+    print('-----> ',file)
     umap = pickle.load(file)
     from umap.nndescent import make_initialisations, make_initialized_nnd_search
+    import umap.distances as dist
+    import umap.sparse as sparse
+    print(' -------------- ')
+    print(dir(umap))
+    print(' -------------- ')
+    if hasattr(umap,'_distance_func'):
+        metric_func = umap._distance_func
+        metric_args = umap._dist_args
+    else:
+        metric_args = tuple(umap._metric_kwds.values())
+        if callable(umap.metric):
+            metric_func = umap.metric
+        elif umap.metric in dist.named_distances:
+            # Choose the right metric based on sparsity
+            if umap._sparse_data:
+                metric_func = sparse.sparse_named_distances[umap.metric]
+            else:
+                metric_func = dist.named_distances[umap.metric]
+        else:
+            Raise('Error metric function cannot be extracted from the umap instance')
     umap._random_init, umap._tree_init = make_initialisations(
-        umap._distance_func, umap._dist_args
+        metric_func, metric_args
     )
     umap._search = make_initialized_nnd_search(
-        umap._distance_func, umap._dist_args
+        metric_func, metric_args
     )
     return umap
 
@@ -402,7 +424,8 @@ class NNInterface(QMainWindow, design.Ui_MainWindow):
                 QtTest.QTest.qWait(1*1000)
                 
                 #compute embedding and save it
-                if not os.path.isfile(file_name+'_umap.sav'):
+                if not os.path.exists(file_name+'_umap.sav'):
+                    print('umap doesn exist creaeing new:')
                     self.plot_centroids = True
                     
                     #collect randomly self.nr_embedding_dataset frames for creating the low-dim embedding
@@ -415,6 +438,10 @@ class NNInterface(QMainWindow, design.Ui_MainWindow):
                     #fit model
                     feats_norm = self.feats['features'][idx ,:]
                     low_dim_method.fit(feats_norm)
+                    print('----------')
+                    print('dir of low_dim_method: ', dir(low_dim_method))
+                    print('-=============')
+                    print('++>> low_dim_method.self._small_data', low_dim_method._small_data)
                     save_umap(low_dim_method,open(file_name+'_umap.sav','wb'))
                     
                     #transform dataset points
