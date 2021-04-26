@@ -52,7 +52,7 @@ for v in trange(N):
         os.makedirs(frames_path_vid)
     else:#check if we even need to extract the frames here or if all frames are already available
         nrFramesTotal = int(subprocess.check_output('ffprobe -show_packets %s 2>/dev/null | grep video | wc -l'%vid_fullPath.replace(" ","\ "), shell=True))#get number of frames in video
-        l = len([name for name in os.listdir(frames_path_vid) if os.path.isfile(name)])#check how many frames are already extracted
+        l = len([name for name in os.listdir(frames_path_vid) if os.path.exists(name)])#check how many frames are already extracted
         if nrFramesTotal==l:
             continue
     
@@ -124,9 +124,11 @@ detections.to_csv(cfg.detection_file)
 detections = load_table(cfg.detection_file,asDict=False)
 
 #include new column to save the size of the original frames (comment out if already saved)
-#detections = detections.assign(original_size_x=pd.Series(np.zeros(len(detections),np.int)).values)
-#detections = detections.assign(original_size_y=pd.Series(np.zeros(len(detections),np.int)).values)
+print('detection init cols: ' , detections.columns)
+detections = detections.assign(original_size_x=pd.Series(np.zeros(len(detections),np.int)).values)
+detections = detections.assign(original_size_y=pd.Series(np.zeros(len(detections),np.int)).values)
 
+print('detection final cols: ' , detections.columns)
 videos = np.unique(list(detections['videos']))
 N_vids = len(videos)
 
@@ -151,23 +153,24 @@ for v in range(N_vids):
         #image = Image.open('%s%s/%06d.jpg'%(cfg.frames_path,videos[v],f))#axis changed: x:0, y:1
         image = Image.open('%s/%06d.jpg'%(frames_path_vid,f))#axis changed: x:0, y:1
         s = image.size
-        c[0],c[1],c[2],c[3] = max(0,c[0]),max(0,c[1]),min(s[0],c[2]),min(s[1],c[3])#make sure that the bounding box is not outside of the image
+        # print('image size: ', s)
+        c[0],c[1],c[2],c[3] = max(0,c[0]),max(0,c[1]),max(s[0],c[2]),max(s[1],c[3])#make sure that the bounding box is not outside of the image
         
         #crop 5% more on every side for augmentation later during training
         w = c[2]-c[0]
         h = c[3]-c[1]
         
         c_new = np.copy(c)
-        c_new[0],c_new[1] = max(0,c[0]-int(0.05*w)),max(0,c[1]-int(0.05*h))
-        c_new[2],c_new[3] = min(c[2]+int(0.05*w),s[0]),min(c[3]+int(0.05*h),s[1])
-        
+        c_new[0],c_new[1] = max(0,c[0]+int(0.05*w)),max(0,c[1]+int(0.05*h))
+        c_new[2],c_new[3] = min(c[2]-int(0.05*w),s[0]),min(c[3]-int(0.05*h),s[1])
+        # print('crop coords: ', c_new)
         img_crop = image.crop(c_new)
         img_crop.save('%s/%06d.jpg'%(crops_path_vid,f))
         
         #we need to save the original size of the frame for later (comment out if already saved; there appears a 'SettingWithCopyWarning' which can be ignored)
-        #detections['original_size_x'][idx[j]] = s[0]
-        #detections['original_size_y'][idx[j]] = s[1]
+        detections['original_size_x'][idx[j]] = s[0]
+        detections['original_size_y'][idx[j]] = s[1]
         
 #save the detections as csv file, so that it is updated with the new columns (comment out if already saved)
-#detections.to_csv(cfg.detection_file)
+detections.to_csv(cfg.detection_file)
 
