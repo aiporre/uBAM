@@ -93,7 +93,7 @@ class CaffeNet(nn.Module):
         self.fc7.add_module('drop7',nn.Dropout(p=0.5))
         
         self.lstm = nn.LSTM(4096,1024,1)
-        #self.lstm_bn = nn.BatchNorm1d(1024)###########################################################################################################################
+        self.lstm_bn = nn.BatchNorm1d(1024)###########################################################################################################################
         self.drop = nn.Dropout(p=0.5)
         
         self.classifier = nn.Sequential()
@@ -111,9 +111,10 @@ class CaffeNet(nn.Module):
         return x
         
     def forward(self, x):
-        self.batchsize = x.size(0)/self.seq_len#for variable batchsize
+        self.batchsize = x.size(0)//self.seq_len#for variable batchsize
         x = self.conv(x)
-        x = x.view(x.size(0), -1)
+        # print('----------> ' , x.size(0))
+        x = x.contiguous().view(x.size(0), -1)
         x = self.fc6(x)
         x = self.fc7(x)
         x = x.view(self.seq_len,self.batchsize,-1)#reshape data
@@ -128,7 +129,7 @@ class CaffeNet(nn.Module):
     def extract_features_fc(self,x):
         #self.batchsize = x.size(0)/self.seq_len#for variable batchsize
         x = self.conv(x)
-        x = x.view(x.size(0), -1)
+        x = torch.flatten(x, start_dim=1) # x.view(x.size(0), -1)
         x = self.fc6(x)
         #x = x.view(self.seq_len,self.batchsize,-1)#reshape data
         
